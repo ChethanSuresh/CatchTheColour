@@ -32,8 +32,8 @@ struct color_map {
 
 struct color_map map[] = {
 	{0, "RED"},
-		{1, "YELLO"},
-		{2, "BLUE"}
+	{1, "YELLO"},
+	{2, "BLUE"}
 };
 
 
@@ -108,11 +108,71 @@ void fancy_dance(){
 	int i;
 	for (i=0;i<5;i++){
 		on_led(1,0,0);
-		usleep(200000);
+		usleep(100000);
 		on_led(0,1,0);
-		usleep(200000);
+		usleep(100000);
 		on_led(0,0,1);
-		usleep(200000);
+		usleep(100000);
+	}
+}
+
+int game(int to_catch){
+
+	/* Set the life level speed variables*/
+	int life = 3;
+	int level = 1;
+	int speed = 11;
+	int i,j;
+	//printf("main game to catch: %d\n", to_catch);
+
+	while(1){
+
+		/* Toggle LED sequence */
+		for(i=0; i< 3; i++){
+			if (i == 0)
+				on_led(1,0,0);
+			if (i == 1)
+				on_led(0,1,0);
+			if (i == 2)
+				on_led(0,0,1);
+
+		/* Detect key press during sequence */
+			for(j=0; j<speed; j++){
+				switch_fd = open(SWITCH_DIR "/value", O_RDONLY);
+
+				/* read key variable */
+				read(switch_fd, switch_value_str, 3);
+				switch_state = atoi(switch_value_str);
+				usleep(100000);
+
+				/* check key state, if enabled GPIO_DIR/value is 0 */
+				if (switch_state == 0){
+					//printf("Pressed");
+					if(i == to_catch){
+						printf("\rYes Level: %d  Life: %d", level, life);
+						fflush(stdout);
+						speed--;
+						level++;
+						if (level == 10){
+							return 0;
+						}
+						//break;
+					}else{
+						printf("\rNoo Level: %d  Life: %d", level, life);
+						life--;
+						if (life == 0){
+							return 1;
+						}
+						fflush(stdout);
+					}
+				}
+				close(switch_fd);
+			}
+			//if(life == 0 || level == 10){
+		//		printf("\nGo gome, you lost\n");
+	//			return 1;
+	//		}
+		}
 	}
 }
 
@@ -138,17 +198,36 @@ int main(void){
 	printf("!!! Test your hand-eye coordination !!!  \n");
 	printf("*****************************************\n");
 
-	
+	fancy_dance();
+
 	//fancy_dance();
 	sleep(1);
-	
+
 	on_led(0,0,0);
 
 	printf("\n\n\n");
-	printf("STEP1: Click once to select color\n");
-	printf("STEP2: Press and hold for 3sec to confirm selection\n");
-	printf("\nAfter the game starts, click to choose color\n");
+	printf("STEP1: Click once to select over colors\n");
+	printf("STEP2: Wait for countdown to start game\n");
+	printf("\n\n");
 
+	
+	/* Press key to continue */
+	printf("Press Key to continue...\n");
+	for(;;){
+		switch_fd = open(SWITCH_DIR "/value", O_RDONLY);
+
+		/* read key variable */
+		read(switch_fd, switch_value_str, 3);
+		switch_state = atoi(switch_value_str);
+		usleep(100000);
+
+		/* check key state, if enabled GPIO_DIR/value is 0 */
+		if (switch_state == 0){
+			break;
+		}
+	}
+
+	/* Color selection by user */
 	int roll_count = 0;
 	int i;
 	on_led(1,0,0); //int to_catch = 0; // Default if no switch pressed
@@ -165,7 +244,7 @@ int main(void){
 
 		/* check key state, if enabled GPIO_DIR/value is 0 */
 		if (switch_state == 0){
-	
+
 			/*Reset countdown timer*/
 			i=100;
 
@@ -195,12 +274,23 @@ int main(void){
 		printf("\rCOLOR TO CATCH: %s \t\t\t Game starts in:%d sec",map[roll_count].color ,i/10 );
 		fflush(stdout);
 	}
-	printf("\n!!! START !!!\n");
-	printf("\n\n\n");
 
+	/* Off all LED for a brief time before game starts */
+	on_led(0,0,0);
+	sleep(1);
+
+	printf("\n\n\n");
+	printf("                      START                   \n");
+	printf("        !!!  CATCH THE COLOR: %s!!!         \n", map[roll_count].color);
 	printf("*****************************************\n");
-	printf("        !!!  CATCH THE COLOR !!!         \n");
-	printf("*****************************************\n");
+
+	
+	int ret = game(to_catch);
+	if (ret == 0){
+		printf("\n\n\n!!! GRAND WIN !!!\n\n\n");
+	}else if (ret == 1){
+		printf("\n\n\n!!! GRAND LOSE !!!\n\n\n");
+	}
 
 	return 0;
 }
