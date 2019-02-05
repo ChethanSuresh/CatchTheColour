@@ -12,6 +12,7 @@
 #define YEL_GPIO 200 //GPIO7_8
 #define BLU_GPIO 90  //GPIO3_26
 #define BTN_GPIO 91  //GPIO3_27
+#define SWITCH_DIR "/sys/class/gpio/gpio91"
 
 // To access /sys/class/gpio direct
 #define RED gpio24
@@ -23,6 +24,23 @@
 #define OUT "out"
 
 #define GPIO_SYS "/sys/class/gpio"
+
+struct color_map {
+	const int number;
+	const char *color;
+};
+
+struct color_map map[] = {
+	{0, "RED"},
+		{1, "YELLO"},
+		{2, "BLUE"}
+};
+
+
+char switch_value_str[3];
+int switch_state;
+int switch_fd;
+int to_catch = 0;
 
 static void export_gpio(int pin){
 	FILE *fd = fopen(GPIO_SYS "/export", "w");
@@ -98,12 +116,6 @@ void fancy_dance(){
 	}
 }
 
-static int poll_key(){
-	
-
-	return value;
-}
-
 void init_gpio(){
 	// Export GPIO pins for use 
 	export_gpio(RED_GPIO);
@@ -126,12 +138,10 @@ int main(void){
 	printf("!!! Test your hand-eye coordination !!!  \n");
 	printf("*****************************************\n");
 
-	fancy_dance();
-	/*
-	printf("Test setting value\n");
-	on_led(1,0,0);
+	
+	//fancy_dance();
 	sleep(1);
-	*/
+	
 	on_led(0,0,0);
 
 	printf("\n\n\n");
@@ -139,9 +149,58 @@ int main(void){
 	printf("STEP2: Press and hold for 3sec to confirm selection\n");
 	printf("\nAfter the game starts, click to choose color\n");
 
-	while(1){
-		on_led(1,0,0); // Start with this 
-		
+	int roll_count = 0;
+	int i;
+	on_led(1,0,0); //int to_catch = 0; // Default if no switch pressed
+
+	/* User needs to select withing countdown 10sec*/
+	/* If key pressed, countdown again */
+	for (i=100;i>0;i--){
+		switch_fd = open(SWITCH_DIR "/value", O_RDONLY);
+
+		/* read key variable */
+		read(switch_fd, switch_value_str, 3);
+		switch_state = atoi(switch_value_str);
+		usleep(100000);
+
+		/* check key state, if enabled GPIO_DIR/value is 0 */
+		if (switch_state == 0){
+	
+			/*Reset countdown timer*/
+			i=100;
+
+			//printf("pressed\n"); //DEBUG stetement
+			roll_count++; 
+			if (roll_count == 1){ 
+				//Select YELLOW LED
+				on_led(0,1,0);
+				to_catch = 1;
+				//printf("yellow led\n"); //DEBUG statement 
+			} 
+			if (roll_count == 2){ 
+				//Select BLUE LED
+				on_led(0,0,1);
+				to_catch = 2;
+				//printf("blue led\n"); //DEBUG statement
+			}
+		}
+		if (roll_count == 3){
+			roll_count = 0;
+			//Select RED LED, roll back
+			on_led(1,0,0);
+			to_catch = 0;
+			//printf("red led\n"); //DEBUG statement
+		}
+		close(switch_fd);
+		printf("\rCOLOR TO CATCH: %s \t\t\t Game starts in:%d sec",map[roll_count].color ,i/10 );
+		fflush(stdout);
 	}
+	printf("\n!!! START !!!\n");
+	printf("\n\n\n");
+
+	printf("*****************************************\n");
+	printf("        !!!  CATCH THE COLOR !!!         \n");
+	printf("*****************************************\n");
+
 	return 0;
 }
