@@ -15,27 +15,13 @@
 
 static irqreturn_t btn_press(void);
 
-static int btn_open(struct inode *inode, struct file *file){
-	printk(KERN_INFO "Open function\n");
-	return 0; 
-}
 
-static ssize_t btn_read(struct file *file, char __user *user_buf, size_t count, loff_t *ppos){
-	printk(KERN_INFO "Read function\n");
-	return 0;
-}
-
-static int btn_close(struct inode *inode, struct file *file){
-	printk(KERN_INFO "Close function\n");
-	return 0;
-}
-
-static const struct file_operations btn_fops = {
-	.open       = btn_open,
-	.release    = btn_close,
-	.read       = btn_read,
+//static const struct file_operations btn_fops = {
+//	.open       = btn_open,
+//	.release    = btn_close,
+	//.read       = btn_read,
 	//.unlocked_ioctl = btn_unlocked_ioctl,
-};
+//};
 
 static irqreturn_t btn_press(void){
 	printk(KERN_INFO "Int received\n");
@@ -47,11 +33,17 @@ static irqreturn_t btn_press(void){
 static int __init open_init(void)
 {
 	int ret;
+	int irq_number;
 	printk(KERN_INFO "Init GPIO91 switch\n");
-	// Turn off LED first
+
+	/* Turn off LED first */
 	gpio_direction_input(SWITCH);
 	gpio_direction_output(YELLOW,0);
-	gpio_set_debounce(SWITCH, 100);
+	gpio_set_debounce(SWITCH, 150);
+
+	/* Create IRQ request */
+	irq_number = gpio_to_irq(91);
+	printk("number %d\n", irq_number);
 	ret = request_irq(gpio_to_irq(91), (irq_handler_t)btn_press, IRQF_TRIGGER_FALLING, "btn", NULL);
 	if (ret < 0){
 		printk("Error with requset_irq");
@@ -62,7 +54,9 @@ static int __init open_init(void)
 
 static void __exit close_exit(void)
 {
-	//gpio_direction_output(YELLOW,0);
+	gpio_direction_output(YELLOW,0);
+	/*Free the IRQ*/
+	free_irq(gpio_to_irq(91), NULL);
 	printk(KERN_INFO "Exit GPIO91 switch\n");
 }
 
