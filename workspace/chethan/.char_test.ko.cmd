@@ -1,0 +1,1 @@
+cmd_drivers/char/chethan/char_test.ko := arm-linux-gnueabihf-ld -EL -r  -T ./scripts/module-common.lds --build-id  -o drivers/char/chethan/char_test.ko drivers/char/chethan/char_test.o drivers/char/chethan/char_test.mod.o

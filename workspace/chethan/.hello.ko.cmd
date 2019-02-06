@@ -1,0 +1,1 @@
+cmd_drivers/char/chethan/hello.ko := arm-linux-gnueabihf-ld -EL -r  -T ./scripts/module-common.lds --build-id  -o drivers/char/chethan/hello.ko drivers/char/chethan/hello.o drivers/char/chethan/hello.mod.o

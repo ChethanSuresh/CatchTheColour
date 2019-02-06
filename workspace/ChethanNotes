@@ -1,0 +1,213 @@
+export ARCH=arm
+export CROSS_COMPILE=arm-linux-gnueabihf-
+
+
+Compile U-boot
+--------------
+$ echo $ARCH 
+arm
+$ echo $CROSS_COMPILE 
+arm-linux-gnueabihf-
+$ ls configs/wandboard_defconfig 
+configs/wandboard_defconfig
+$ make wandboard_defconfig 
+$ make
+
+
+Write u-boot to SD card
+-----------------------
+- include/configs/imx6_spl.h
+- SPL needs 68K padding 
+$ sudo dd if=SPL of=/dev/sdb bs=1K seek=1
+$ sudo dd if=u-boot.img of=/dev/sdb bs=1K seek=69
+
+
+SD card boot
+------------
+Manual 
+  => mmc rescan
+  => fatload mmc 0:1 12000000 zImage
+  => fatload mmc 0:1 12A00000 imx6dl-wandboard-revb1.dtb
+  => setenv bootargs 'root=/dev/mmcblk2p2 rw rootwait console=ttymxc0,115200'
+  => bootz 12000000 - 12A00000
+
+Boot Commands
+  => setenv bootcmd 'fatload mmc 0:1 12000000 zImage; fatload mmc 0:1 12A00000 imx6dl-wandboard-revb1.dtb'
+
+
+USB Boot
+--------	
+  => usb start
+  => fatload usb 0:1 12000000 zImage
+  => fatload usb 0:1 12A00000 imx6dl-wandboard-revb1.dtb
+  => setenv bootargs 'root=/dev/sda2 console=/dev/ttymxc0,115200 rw rootwait'
+  => bootz 12000000 - 12A00000
+
+
+TFTP Boot
+---------
+Required
+  $ sudo apt install nfs-kernel-server
+  $ mkdir rootfs
+  
+  $ cat /etc/exports 
+  /tftpboot/rootfs *(rw,sync,no_subtree_check,no_root_squash)
+  $ sudo exportfs -a 
+
+  $ sudo /etc/init.d/nfs-kernel-server restart
+  
+ 
+
+Manual
+  => dhcp 
+  => setenv ipaddr 192.168.1.10
+  => setenv serverip 192.168.1.17
+  => tftpboot 12000000 192.168.1.17:zImage
+  => tftpboot 12A00000 192.168.1.17:imx6dl-wandboard-revb1.dtb
+  => bootz 12000000 - 12A00000
+
+Boot Commands and args 
+  => setenv ipaddr 192.168.1.10
+  => setenv serverip 192.168.1.17
+  => setenv bootargs 'console=ttymxc0,115200 root=/dev/nfs rootwait rw ip=192.168.1.10:192.168.1.17:192.168.1.1:255.255.255.0:eth0 nfsroot=192.168.1.17:/home/chethan/rootfs'
+  => setenv bootcmd 'tftpboot 12000000 192.168.1.17:zImage; tftpboot 12A00000 192.168.1.17:imx6dl-wandboard-revb1.dtb; bootz 12000000 - 12A00000'
+
+
+Cscope
+------
+-b Build the cross-reference only.
+-q Build an inverted index for quick symbol searching.
+-v Be more verbose in line mode.
+install cscope
+download cscope maps http://cscope.sourceforge.net/cscope_maps.vim
+
+find only c h makefiles for now 
+  $ find . -name '*.c' -o -name '*.h' -o -name Makefile -o -name Kconfig -o -name 'config.*' -o -name 'Kbuild' -o -name '*.lds' -o -name '*.S' -o -name '*.cdl' -o -name '*.in'> cscope.files
+
+
+u-boot source code 
+-------------------
+loader file arch/arm/cpu/u-boot.lds 
+
+
+Kernel build
+------------
+$ export ARCH=arm
+$ export CROSS_COMPILE
+$ make wandboard_defconfig
+$ make menuconfig
+$ make -j5 
+$ make modules
+$ INSTALL_MOD_PATH=/tftpboot/rootfs/lib make modules_install
+$ cp arch/arm/boot/zImage /tftpboot/ && cp arch/arm/boot/dts/imx6dl-wandboard-revb1.dtb /tftpboot/
+
+Disable peripherals in dtb 
+--------------------------
+- disable the component in dts file 
+- In wandboard 
+$ git diff arch/arm/boot/dts/imx6dl-wandboard-revb1.dts
+  &usbh1 {
+         status = "disable";
+  };
+- https://www.kernel.org/doc/Documentation/devicetree/
+
+
+bootargs to kernel
+------------------
+The boot args are parsed and placed in series in RAM
+The address of first arg is stored in r2 register
+the kernel looks for the address stored at r2 register
+to get the bootargs to kernel 
+
+
+28th Jan 2019 kbuild
+--------------------
+
+`Makefile` in linux source root
+	# Objects we will link into vmlinux / subdirs we need to visit
+	init-y      := init/
+	drivers-y   := drivers/ sound/ firmware/
+	net-y       := net/
+	libs-y      := lib/
+	core-y      := usr/
+	endif # KBUILD_EXTMOD
+
+	# Default kernel image to build when no specific target is given.
+	# KBUILD_IMAGE may be overruled on the command line or
+	# set in the environment
+	# Also any assignments in arch/$(ARCH)/Makefile take precedence over
+	# this default value
+	export KBUILD_IMAGE ?= vmlinux
+
+
+Init kernel bootparam
+---------------------
+to be mentioned in 'bootargs'
+http://man7.org/linux/man-pages/man7/bootparam.7.html
+'init=...'
+              This sets the initial command to be executed by the kernel.
+              If this is not set, or cannot be found, the kernel will try
+              /sbin/init, then /etc/init, then /bin/init, then /bin/sh and
+              panic if all of this fails.
+init=/sbin/init_test.sh console=ttymxc0,115200 root=/dev/nfs rootwait rw ip=192.168.1.10:192.168.1.15:192.168.1.1:255.255.255.0:eth0 nfsroot=192.168.1.15:/tftpboot/rootfs
+pboot/rootfs
+
+
+
+###########
+console=ttymxc0,115200 root=/dev/nfs rootwait rw ip=192.168.1.10:192.168.1.15:192.168.1.1:255.255.255.0:eth0 nfsroot=192.168.1.15:/tftpboot/busybox
+###########
+BusyBox
+-------
+$ export ARCH=arm
+$ export CROSS_COMPILE=arm-linux-gnueabihf-
+$ make menuconfig
+$ make 
+$ make install CONFIG_PREFIX=/tftpboot/busybox/
+
+
+$ cat etc/inittab
+::sysinit:/etc/init.d/rcS
+::respawn:-/bin/sh
+tty4::respawn:/sbin/getty 38400 tty5
+#::respawn:/sbin/getty 57600 ttyS2
+# Stuff to do when restarting the init process
+#::restart:/sbin/init
+# Stuff to do before rebooting
+::ctrlaltdel:/sbin/reboot
+::shutdown:/bin/umount -a -r
+::shutdown:/sbin/swapoff -a
+
+$ cat etc/init.d/rcS 
+#!/bin/sh
+mount -t proc - /proc
+mount -t sysfs - /sys
+
+
+for login 
+create passwd,shadow,group file 
+
+$ ls -las etc/passwd 
+$ chmod u+rw,g+rw,o+r etc/passwd
+
+$ ls -las etc/group
+$ chmod u+rw,g+r,o+r etc/group
+
+$ ls -las etc/shadow 
+$ chmod u+rw,g+r etc/shadow
+
+
+menu "Character devices"
+
+config CHETHAN_HELLO
+       tristate "Enable hello module"
+       help
+         Loads hello test char driver 
+
+endmenu
+
+
+CHETHAN_HELLO
+
+
+

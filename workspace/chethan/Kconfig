@@ -1,0 +1,15 @@
+menu "Test chethan drivers"
+
+config CHETHAN_HELLO_DRIVER
+       tristate "Enable hello module"
+	   depends on CHETHAN
+       help
+         Loads hello test char driver 
+
+config CHETHAN_CHAR_DRIVER
+       tristate "Enable char module"
+	   depends on CHETHAN
+       help
+         Loads char test char driver 
+
+endmenu

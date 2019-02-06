@@ -1,0 +1,1 @@
+cmd_/tftpboot/rootfs/home/chethan/led/serial.ko := arm-linux-gnueabihf-ld -EL -r  -T ./scripts/module-common.lds --build-id  -o /tftpboot/rootfs/home/chethan/led/serial.ko /tftpboot/rootfs/home/chethan/led/serial.o /tftpboot/rootfs/home/chethan/led/serial.mod.o

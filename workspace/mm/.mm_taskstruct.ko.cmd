@@ -1,0 +1,1 @@
+cmd_/home/chethan/workspace/mm/mm_taskstruct.ko := ld -r -m elf_x86_64 -z max-page-size=0x200000 -T ./scripts/module-common.lds --build-id  -o /home/chethan/workspace/mm/mm_taskstruct.ko /home/chethan/workspace/mm/mm_taskstruct.o /home/chethan/workspace/mm/mm_taskstruct.mod.o ;  true

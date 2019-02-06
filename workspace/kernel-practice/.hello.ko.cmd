@@ -1,0 +1,1 @@
+cmd_/home/chethan/kernel-practice/hello.ko := arm-linux-gnueabihf-ld -EL -r  -T ./scripts/module-common.lds --build-id  -o /home/chethan/kernel-practice/hello.ko /home/chethan/kernel-practice/hello.o /home/chethan/kernel-practice/hello.mod.o

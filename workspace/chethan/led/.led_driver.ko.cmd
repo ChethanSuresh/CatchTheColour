@@ -1,0 +1,1 @@
+cmd_/tftpboot/rootfs/home/chethan/led/led_driver.ko := arm-linux-gnueabihf-ld -EL -r  -T ./scripts/module-common.lds --build-id  -o /tftpboot/rootfs/home/chethan/led/led_driver.ko /tftpboot/rootfs/home/chethan/led/led_driver.o /tftpboot/rootfs/home/chethan/led/led_driver.mod.o
