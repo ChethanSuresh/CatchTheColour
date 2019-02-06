@@ -132,7 +132,7 @@ int game(int to_catch) {
         on_led(0, 1, 0);
       if (i == 2)
         on_led(0, 0, 1);
-
+      //printf("To catch: %s, Color glowing %s\n",map[to_catch].color ,map[i].color); //DEBUG statement
       /* Detect key press during sequence */
       for (j = 0; j < speed; j++) {
         switch_fd = open(SWITCH_DIR "/value", O_RDONLY);
@@ -140,12 +140,14 @@ int game(int to_catch) {
         /* read key variable */
         read(switch_fd, switch_value_str, 3);
         switch_state = atoi(switch_value_str);
+        close(switch_fd);
         usleep(100000);
 
         /* check key state, if enabled GPIO_DIR/value is 0 */
         if (switch_state == 0) {
-          // printf("Pressed");
+          //printf("Pressed");
           if (i == to_catch) {
+            usleep(5000);
             printf("\rYes Level: %d  Life: %d", level, life);
             fflush(stdout);
             speed--;
@@ -153,8 +155,9 @@ int game(int to_catch) {
             if (level == 10) {
               return 0;
             }
-            // break;
-          } else {
+            //break;
+            } else {
+            usleep(5000);
             printf("\rNoo Level: %d  Life: %d", level, life);
             life--;
             if (life == 0) {
@@ -163,7 +166,6 @@ int game(int to_catch) {
             fflush(stdout);
           }
         }
-        close(switch_fd);
       }
     }
   }
@@ -242,6 +244,8 @@ int selection() {
   printf("        !!!  CATCH THE COLOR: %s!!!         \n",
          map[roll_count].color);
   printf("*********************************************\n");
+
+  return to_catch;
 }
 
 int main(void) {
@@ -262,8 +266,13 @@ int main(void) {
   on_led(0, 0, 0);
 
   printf("\n\n\n");
-  printf("STEP1: Click once to select over colors\n");
-  printf("STEP2: Wait for countdown to start game\n");
+  printf("*******************************************\n");
+  printf("*               HOW TO PLAY               *\n");
+  printf("*******************************************\n");
+  printf("* STEP1: Click once to select over colors *\n");
+  printf("* STEP2: Wait for countdown to start game *\n");
+  printf("*         LEVEL = 10        LIFE = 3      *\n");
+  printf("*******************************************\n");
   printf("\n\n");
 
   /* Press key to continue, wait for user to read manual */
@@ -282,9 +291,12 @@ int main(void) {
     }
   }
 
+  //printf("Before selection %s\n", map[to_catch].color); //DEBUG 
   to_catch = selection();
+  //printf("After selection %s\n", map[to_catch].color); //DEBUG
 
   /* Exit, based on win or lose */
+  //printf("Before main game %s\n", map[to_catch].color); //DEBUG
   int ret = game(to_catch);
   if (ret == 0) {
     printf("\n\n\n!!! GRAND WIN !!!\n\n\n");
